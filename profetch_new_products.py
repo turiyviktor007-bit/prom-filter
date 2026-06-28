@@ -143,6 +143,7 @@ def parse_feed(source, on_progress):
         price     = (o.findtext("price") or "").strip()
         currency  = (o.findtext("currencyId") or "UAH").strip()
         vendor    = (o.findtext("vendor") or "").strip()
+        url       = (o.findtext("url") or "").strip()
         pictures  = [p.text.strip() for p in o.findall("picture") if p.text]
 
         # Поля які виносяться окремо
@@ -224,7 +225,7 @@ def parse_feed(source, on_progress):
             "name": name, "name_ua": name_ua,
             "desc": desc, "desc_ua": desc_ua,
             "price": price, "currency": currency,
-            "vendor": vendor, "pictures": pictures,
+            "url": url, "vendor": vendor, "pictures": pictures,
             "group_num": group_num,
             "gtin": gtin, "mpn": mpn,
             "weight": weight, "width": width,
@@ -305,14 +306,16 @@ def generate_xls(new_items, output_path, on_progress):
             grp_name,                  # 19 Название_группы
             grp_addr,                  # 20 Адрес_подраздела
             "", "", "", "",            # 21-24 поставка, упаковка
-            "",                        # 25 Уникальный_идентификатор
-            p["id"],                   # 26 Идентификатор_товара
+            p["id"],                   # 25 Уникальный_идентификатор
+            "",                        # 26 Идентификатор_товара (пусто)
             grp_subid,                 # 27 Идентификатор_подраздела
             "",                        # 28 Идентификатор_группы
-            p["vendor"],               # 29 Производитель
+            "",                        # 29 Производитель (пусто)
             p["country"],              # 30 Страна_производитель
-            "", "", "", "",            # 31-34
-            "", "", "",                # 35-37
+            "", "", "",                # 31-33
+            p["url"],                  # 34 Продукт_на_сайте
+            "", "",                    # 35-36
+            "-",                       # 37 Цена_от
             "",                        # 38 Ярлык
             "", "", "", "",            # 39-42 HTML
             p["gtin"],                 # 43 GTIN
@@ -322,7 +325,7 @@ def generate_xls(new_items, output_path, on_progress):
             p["height"],               # 47 Высота,см
             p["length"],               # 48 Длина,см
             "Киев",                    # 49 Где_находится
-            "Нет", "",                 # 50-51 ProSale
+            "Да", "",                  # 50-51 ProSale
         ]
 
         # Дефолтні характеристики — перезаписуємо незалежно від фіду
