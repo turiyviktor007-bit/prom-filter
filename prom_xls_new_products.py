@@ -361,7 +361,6 @@ class App(tk.Tk):
         if show:
             kw["show"] = show
         e = tk.Entry(parent, **kw)
-        e.configure(pady=8)
         return e
 
     def _btn_small(self, parent, text, cmd):
