@@ -469,4 +469,188 @@ class App(tk.Tk):
             tag = f"color_{color}"
             self.log_box.tag_configure(tag, foreground=color)
         self.log_box.insert("end", text + "\n", tag or "")
-        self.log_box.see("
+        self.log_box.see("end")
+        self.log_box.configure(state="disabled")
+
+    def _log_clear(self):
+        self.log_box.configure(state="normal")
+        self.log_box.delete("1.0", "end")
+        self.log_box.configure(state="disabled")
+
+    # ── ПРОГРЕС-БАР (анімація) ───────────────
+
+    def _pb_start(self):
+        self._pb_anim = 0
+        self._pb_dir  = 1
+        self._pb_tick()
+
+    def _pb_tick(self):
+        if not self._running:
+            self.pb_fill.place(x=0, y=0, height=6, width=0)
+            return
+        w = self.pb_bg.winfo_width()
+        bar_w = max(w // 4, 60)
+        self._pb_anim += self._pb_dir * 6
+        if self._pb_anim >= w - bar_w:
+            self._pb_dir = -1
+        if self._pb_anim <= 0:
+            self._pb_dir = 1
+            self._pb_anim = 0
+        self.pb_fill.place(x=self._pb_anim, y=0, height=6, width=bar_w)
+        self.after(20, self._pb_tick)
+
+    # ── ЗБЕРЕЖЕННЯ НАЛАШТУВАНЬ ────────────────
+
+    def _settings_path(self):
+        return os.path.join(os.path.expanduser("~"), ".profetch_filter.ini")
+
+    def _save_settings(self):
+        try:
+            with open(self._settings_path(), "w", encoding="utf-8") as f:
+                f.write(f"token={self.prom_token.get()}\n")
+                f.write(f"feed={self.feed_path.get()}\n")
+                f.write(f"out={self.out_path.get()}\n")
+        except Exception:
+            pass
+
+    def _load_settings(self):
+        try:
+            p = self._settings_path()
+            if not os.path.exists(p):
+                return
+            with open(p, encoding="utf-8") as f:
+                for line in f:
+                    k, _, v = line.strip().partition("=")
+                    if k == "token":
+                        self.prom_token.set(v)
+                    elif k == "feed":
+                        self.feed_path.set(v)
+                    elif k == "out":
+                        self.out_path.set(v)
+        except Exception:
+            pass
+
+    # ── ГОЛОВНА ЛОГІКА (у потоці) ────────────
+
+    def _start(self):
+        feed  = self.feed_path.get().strip()
+        token = self.prom_token.get().strip()
+        out   = self.out_path.get().strip()
+
+        if not feed:
+            messagebox.showwarning("Увага", "Виберіть або вставте URL XML-фіду")
+            return
+        if not token:
+            messagebox.showwarning("Увага", "Введіть API-токен Пром.юа")
+            return
+        if not out:
+            messagebox.showwarning("Увага", "Вкажіть шлях для збереження результату")
+            return
+
+        self._save_settings()
+        self._log_clear()
+        self._running = True
+        self.run_btn.configure(state="disabled", text="⏳  Обробка...")
+        self.open_btn.configure(state="disabled")
+        self.stat_total.configure(text="…", fg=TEXT_DIM)
+        self.stat_prom.configure(text="…",  fg=TEXT_DIM)
+        self.stat_new.configure(text="…",   fg=TEXT_DIM)
+        self._pb_start()
+
+        threading.Thread(target=self._worker,
+                         args=(feed, token, out), daemon=True).start()
+
+    def _worker(self, feed, token, out):
+        def log(msg, color=None):
+            self.after(0, lambda: self._log(msg, color))
+
+        try:
+            # 1. Пром API
+            log("⟳  Підключення до Пром.юа API...")
+            prom_skus, prom_ext_ids = get_prom_products(token, lambda m: log(f"   {m}"))
+            log(f"✓  Пром: {len(prom_skus)} унікальних артикулів", SUCCESS)
+
+            # 2. Фід
+            log("")
+            log("⟳  Читання XML-фіду...")
+            feed_items, orig_root, fmt = parse_feed(feed, lambda m: log(f"   {m}"))
+            total = len(feed_items)
+            log(f"✓  Фід: {total} товарів (формат: {fmt.upper()})", SUCCESS)
+
+            # 3. Порівняння
+            log("")
+            log("⟳  Порівняння...")
+            new_items = []
+            for item in feed_items:
+                on_prom = (
+                    item["sku"]  in prom_skus    or
+                    item["id"]   in prom_ext_ids or
+                    item["sku"]  in prom_ext_ids
+                )
+                if not on_prom:
+                    new_items.append(item)
+
+            already = total - len(new_items)
+            log(f"✓  Порівняння завершено", SUCCESS)
+            log(f"   У фіді:    {total}")
+            log(f"   На Пром:   {already}")
+            log(f"   НОВИХ:     {len(new_items)}", SUCCESS if new_items else TEXT_DIM)
+
+            # 4. Оновлення статистики
+            self.after(0, lambda: [
+                self.stat_total.configure(text=str(total), fg=TEXT),
+                self.stat_prom.configure(text=str(already), fg=TEXT),
+                self.stat_new.configure(
+                    text=str(len(new_items)),
+                    fg=SUCCESS if new_items else TEXT_DIM
+                )
+            ])
+
+            # 5. Збереження
+            if new_items:
+                log("")
+                log("⟳  Генерація XML...")
+                xml_bytes = build_output_xml(new_items, orig_root, fmt)
+                os.makedirs(os.path.dirname(os.path.abspath(out)), exist_ok=True)
+                with open(out, "wb") as f:
+                    f.write(xml_bytes)
+                size_kb = os.path.getsize(out) / 1024
+                log(f"✓  Збережено: {os.path.basename(out)} ({size_kb:.1f} КБ)", SUCCESS)
+                log("")
+                log("─" * 42, TEXT_DIM)
+                log("ЩО РОБИТИ ДАЛІ:", ACCENT)
+                log("  1. Пром → Товари → Імпорт", TEXT)
+                log("  2. Завантажте: " + os.path.basename(out), TEXT)
+                log("  3. БЕЗ галочки «Тільки оновлення»", WARNING)
+                log("  4. Галочки: Ціна + Наявність", TEXT)
+                log("  5. Натисніть «Почати імпорт»", TEXT)
+                log("─" * 42, TEXT_DIM)
+                self.after(0, lambda: self.open_btn.configure(state="normal"))
+            else:
+                log("")
+                log("✓  Нових товарів немає — все вже на Пром!", SUCCESS)
+
+        except requests.exceptions.HTTPError as e:
+            log(f"✗  HTTP помилка: {e}", DANGER)
+            if "401" in str(e):
+                log("   Перевірте API-токен Пром", DANGER)
+        except requests.exceptions.ConnectionError:
+            log("✗  Немає з'єднання з інтернетом", DANGER)
+        except ET.ParseError as e:
+            log(f"✗  Помилка XML: {e}", DANGER)
+        except Exception as e:
+            log(f"✗  Помилка: {e}", DANGER)
+        finally:
+            self._running = False
+            self.after(0, lambda: self.run_btn.configure(
+                state="normal", text="▶   ЗНАЙТИ НОВІ ТОВАРИ"
+            ))
+
+
+# ──────────────────────────────────────────────
+#  ТОЧКА ВХОДУ
+# ──────────────────────────────────────────────
+
+if __name__ == "__main__":
+    app = App()
+    app.mainloop()
