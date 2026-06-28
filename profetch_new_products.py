@@ -190,7 +190,7 @@ def generate_xls(new_items, output_path, on_progress):
     dfont = Font(name="Arial", size=9)
 
     for idx, p in enumerate(new_items):
-        avail = "+" if p["available"] == "true" else "-"
+        avail = "!" if p["available"] == "true" else "-"
         row = [
             p["vendor_code"],          # Код_товара
             p["name"],                 # Название_позиции
@@ -206,19 +206,19 @@ def generate_xls(new_items, output_path, on_progress):
             ", ".join(p["pictures"]),  # Ссылка_изображения
             avail,                     # Наличие
             "",                        # Количество
-            "",                        # Номер_группы
+            p["category"],             # Номер_группы (categoryId з фіду!)
             "",                        # Название_группы
             "",                        # Адрес_подраздела
             "", "", "", "",            # поставка, упаковка
             "",                        # Уникальный_идентификатор
             p["id"],                   # Идентификатор_товара (внешний ID)
             "",                        # Идентификатор_подраздела
-            p["category"],             # Идентификатор_группы
+            "",                        # Идентификатор_группы (пусто!)
             p["vendor"],               # Производитель
             p["country"],              # Страна_производитель
             "", "", "", "",            # скидка, группа разнов, заметки, на сайте
             "", "", "",                # скидки от/до, цена от
-            "-",                       # Ярлык
+            "",                        # Ярлык (пусто!)
             "", "", "", "",            # HTML заголовок/описание
             p["gtin"],                 # GTIN
             "",                        # MPN
