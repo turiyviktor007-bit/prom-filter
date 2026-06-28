@@ -82,6 +82,7 @@ SKIP_PARAMIDS = {
     "72950",  # Высота в упаковке → Высота,см
     "72944",  # Глубина в упаковке → Длина,см
     "133625", # Совместимый бренд → Номер_группы
+    "98900",  # Страна-производитель товара → Страна_производитель
 }
 
 
@@ -152,6 +153,7 @@ def parse_feed(source, on_progress):
         width     = ""
         height    = ""
         length    = ""
+        country   = ""
         params    = {}  # характеристики
 
         for p in o.findall("param"):
@@ -194,9 +196,14 @@ def parse_feed(source, on_progress):
             elif paramid == "72944":  # Глубина/Длина
                 length = pval
 
+            elif paramid == "98900":  # Страна-производитель
+                country = pval
+
             elif paramid not in SKIP_PARAMIDS:
-                # Звичайна характеристика
-                params[pname] = pval
+                # Звичайна характеристика — значення через | замість ,
+                # для мультизначних параметрів (Особенности, моделі тощо)
+                pval_fixed = pval.replace(",", "|")
+                params[pname] = pval_fixed
 
         products.append({
             "id": offer_id, "available": available,
@@ -208,6 +215,7 @@ def parse_feed(source, on_progress):
             "gtin": gtin, "mpn": mpn,
             "weight": weight, "width": width,
             "height": height, "length": length,
+            "country": country,
             "params": params,
         })
 
@@ -288,7 +296,7 @@ def generate_xls(new_items, output_path, on_progress):
             grp_subid,                 # 27 Идентификатор_подраздела
             "",                        # 28 Идентификатор_группы
             p["vendor"],               # 29 Производитель
-            "",                        # 30 Страна_производитель
+            p["country"],              # 30 Страна_производитель
             "", "", "", "",            # 31-34
             "", "", "",                # 35-37
             "",                        # 38 Ярлык
