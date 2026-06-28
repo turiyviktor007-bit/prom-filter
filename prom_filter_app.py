@@ -150,7 +150,9 @@ def build_output_xml(new_items, orig_root, fmt):
     """Генерує XML тільки з новими товарами."""
     ns_gmc = {"g": "http://base.google.com/ns/1.0"}
 
-    # --- 1. СЛОВНИК ПЕРЕКЛАДУ НАЗВ ХАРАКТЕРИСТИК ---
+    # =========================================================================
+    # ВЕЛИКИЙ СЛОВНИК ПЕРЕКЛАДІВ ПРОМ (РОЗШИРЕНИЙ З УРАХУВАННЯМ ФАЙЛУ GMC)
+    # =========================================================================
     param_mapping = {
         "цвет": "Колір",
         "материал": "Матеріал",
@@ -160,12 +162,21 @@ def build_output_xml(new_items, orig_root, fmt):
         "гарантия": "Гарантійний термін",
         "комплектация": "Комплектація",
         "в комплекте": "У комплекті",
-        "вид": "Тип",
+        "вид": "Вид",
         "тип": "Тип",
         "совместимость с": "Сумісність з",
         "совместимость с брендом": "Сумісність з",
         "совместимая модель": "Модель телефону",
         "модель телефона": "Модель телефону",
+        "модели телефона": "Модель телефону",
+        "модель": "Модель телефону",
+        "мoдель": "Модель телефону", 
+        "совместимая серия": "Серія телефону",
+        "совместимость с apple iphone": "Сумісність з Apple iPhone",
+        "поддержка magsafe": "Підтримка MagSafe",
+        "диагональ экрана": "Діагональ екрана",
+        "клеевой слой": "Клейовий шар",
+        "наличие рамки": "Наявність рамки",
         "выходной разъем": "Вихідний роз'єм",
         "выходной ток": "Вихідний струм",
         "интерфейс подключения": "Інтерфейс під'єднання",
@@ -175,101 +186,141 @@ def build_output_xml(new_items, orig_root, fmt):
         "тип застежки": "Тип застібки",
         "узоры и принты": "Візерунки і принти",
         "особенность цвета": "Особливість кольору",
-        "диагональ экрана": "Діагональ екрана",
         "вес в упаковке, кг": "Вага в пакованні, кг",
         "высота в упаковке (см)": "Висота в пакованні (см)",
         "глубина в упаковке (см)": "Глибина в пакованні (см)",
         "назначение": "Призначення",
         "страна-производитель товара": "Країна виробник",
-        "страна производитель": "Країна виробник"
+        "страна производитель": "Країна виробник",
+        "страна регистрации бренда": "Країна реєстрації бренду",
+        "совместимость с беспроводной зарядкой": "Сумісність з бездротовою зарядкою"
     }
 
-    # --- 2. СЛОВНИК ПЕРЕКЛАДУ ЗНАЧЕНЬ (Англійські кольори та Форм-фактор) ---
     val_exact = {
-        "matt black": "Чорний",
-        "black": "Чорний",
-        "black + transparent": "Чорний",
-        "transparent + black": "Чорний",
-        "ash": "Сірий",
-        "ash grey": "Сірий",
-        "ash/titanium": "Сірий",
-        "carbon fiber": "Сірий",
-        "titanium": "Сірий",
-        "olive": "Зелений",
-        "olive green": "Зелений",
-        "camo black": "Чорний",
-        "kevlar black": "Чорний",
-        "dark orange": "Помаранчевий",
-        "sunset": "Помаранчевий",
-        "brown": "Коричневий",
-        "black-grey": "Чорний",
-        "black-gold": "Чорний",
-        "white": "Білий",
-        "red": "Червоний",
-        "blue": "Синій",
-        "green": "Зелений",
-        "pink": "Рожевий",
-        "transparent": "Прозорий",
-        "grey": "Сірий",
-        "gray": "Сірий",
-        "crimson": "Червоний",
-        "smoke black": "Чорний",
-        "clear": "Прозорий",
+        # Англійські кольори з файлу
+        "matt black": "Чорний", "black": "Чорний", "black + transparent": "Чорний",
+        "transparent + black": "Чорний", "camo black": "Чорний", "kevlar black": "Чорний",
+        "smoke black": "Чорний", "black geo": "Чорний",
+        "ash": "Сірий", "ash grey": "Сірий", "ash/titanium": "Сірий", "carbon fiber": "Сірий",
+        "carbon": "Сірий", "titanium": "Сірий", "slate": "Сірий",
+        "olive": "Зелений", "olive drab": "Оливковий", "olive green": "Зелений", "khaki": "Хакі",
+        "dark orange": "Помаранчевий", "sunset": "Помаранчевий", "brown": "Коричневий",
+        "clear": "Прозорий", "transparent": "Прозорий", "pink + transparent": "Рожевий",
+        "crimson": "Червоний", "magma": "Червоний", "mallard": "Синій", "cobalt": "Синій",
+        "spearmint": "М'ятний", "silver": "Сріблястий", "lilac": "Світло-фіолетовий",
+        "white": "Білий", "red": "Червоний", "blue": "Синій", "green": "Зелений", "pink": "Рожевий",
+        "grey": "Сірий", "gray": "Сірий",
+        # Російські кольори
+        "черный": "Чорний", "белый": "Білий", "красный": "Червоний", "синий": "Синій",
+        "зеленый": "Зелений", "розовый": "Рожевий", "серый": "Сірий", "светло фиолетовый": "Світло-фіолетовий",
+        "серебристый": "Сріблястий", "оливковый": "Оливковий", "фиолетовый": "Фіолетовий",
+        "оранжевый": "Помаранчевий", "мятный": "М'ятний", "голубой": "Блакитний",
+        # Інше (точні збіги)
+        "да": "Так", "нет": "Ні",
         "панель": "Панель (Накладка на корпус)",
+        "накладка": "Панель (Накладка на корпус)",
         "чехол-книжка": "Чохол-книжка",
-        "бампер": "Бампер"
+        "бампер": "Бампер",
+        "защитное стекло": "Захисне скло",
+        "защитная пленка": "Захисна плівка",
+        "глянцевое": "Глянсове",
+        "по всей поверхности": "По всій поверхні",
+        "без узоров и принтов": "Без візерунків і принтів",
+        "без застежки": "Без застібки",
+        "для телефона": "Для телефону",
+        "китай": "Китай", "вьетнам": "В'єтнам", "южная корея": "Південна Корея"
     }
 
-    # --- 3. СЛОВНИК ЗАМІНИ ТЕКСТУ (Матеріали та особливості) ---
     val_replace = {
         "Силикон": "Силікон", "силикон": "силікон",
         "Поликарбонат": "Полікарбонат", "поликарбонат": "полікарбонат",
         "Термополиуретан": "ТПУ (термопластичний поліуретан)", "термополиуретан": "ТПУ (термопластичний поліуретан)",
         "Арамид": "Арамід", "арамид": "арамід",
+        "Кевлар": "Арамід", "кевлар": "арамід",
+        "Алюминий": "Метал", "алюминий": "метал",
+        "Металл": "Метал", "металл": "метал",
         "Пластик": "Пластик", "пластик": "пластик",
+        "Стекло": "Скло", "стекло": "скло",
+        "Искусственная кожа": "Штучна шкіра", "искусственная кожа": "штучна шкіра",
         "Кожа": "Штучна шкіра", "кожа": "штучна шкіра",
+        
         "Противоударный": "Протиударний", "противоударный": "протиударний",
         "С кольцом": "З кільцем", "с кольцом": "з кільцем",
         "С подставкой": "З підставкою", "с подставкой": "з підставкою",
         "Матовый": "Матовий", "матовый": "матовий",
         "Глянцевый": "Глянсовий", "глянцевый": "глянсовий",
+        "Прозрачный": "Прозорий", "прозрачный": "прозорий",
         "Для телефона": "Для телефону", "для телефона": "для телефону",
         "Без застежки": "Без застібки", "без застежки": "без застібки",
-        "Без узоров и принтов": "Без візерунків і принтів", "без узоров и принтов": "без візерунків і принтів"
+        "Без узоров и принтов": "Без візерунків і принтів", "без узоров и принтов": "без візерунків і принтів",
+        "Для занятий спортом": "Для занять спортом", "для занятий спортом": "для занять спортом",
+        "Защита всего корпуса": "Захист всього корпусу", "защита всего корпуса": "захист всього корпусу",
+        "Поддержка бесконтактных платежей": "Підтримка безконтактних платежів", "поддержка бесконтактных платежей": "підтримка безконтактних платежів",
+        "Возможность использовать беспроводное ЗУ": "Можливість використовувати бездротовий ЗП", "возможность использовать беспроводное зу": "можливість використовувати бездротовий ЗП",
+        "Возможность использования магнитных держателей": "Можливість використання магнітних тримачів", "возможность использования магнитных держателей": "можливість використання магнітних тримачів"
     }
 
     for item in new_items:
-        # Використовуємо .iter(), щоб обійти проблему зі схованими просторами імен
+        # Використовуємо .iter() для обходу будь-яких тегів та просторів імен
         for child in item["el"].iter():
             tag_name = child.tag.split('}')[-1]
+            
+            # --- ЛОГІКА ДЛЯ ФОРМАТУ YML (Prom.ua) ---
             if tag_name == 'param':
-                
-                # 0. ВАЖЛИВО: Видаляємо внутрішні ID постачальника, через які Пром бракує параметри
+                # Видалення сміття від Prom
                 if 'paramid' in child.attrib:
                     del child.attrib['paramid']
                 if 'valueid' in child.attrib:
                     del child.attrib['valueid']
                 
-                # 1. Перекладаємо НАЗВУ характеристики
+                # Переклад назви (атрибут name)
                 old_name = child.get("name")
                 if old_name:
                     clean_name = old_name.strip().lower()
                     if clean_name in param_mapping:
                         child.set("name", param_mapping[clean_name])
                 
-                # 2. Перекладаємо ЗНАЧЕННЯ характеристики
+                # Переклад значення (вміст тегу)
                 if child.text:
                     val = child.text.strip()
-                    # Спочатку шукаємо точний збіг (наприклад, складний колір "Olive Green")
                     if val.lower() in val_exact:
                         child.text = val_exact[val.lower()]
                     else:
-                        # Якщо точного збігу немає, перекладаємо слова всередині (наприклад, "Арамид + Поликарбонат")
                         new_val = child.text
                         for rus, ukr in val_replace.items():
                             new_val = new_val.replace(rus, ukr)
                         child.text = new_val
-    # ----------------------------------------------------------------
+
+            # --- ЛОГІКА ДЛЯ ФОРМАТУ GOOGLE MERCHANT CENTER (GMC) ---
+            elif tag_name == 'attribute_name':
+                if child.text:
+                    clean_name = child.text.strip().lower()
+                    if clean_name in param_mapping:
+                        child.text = param_mapping[clean_name]
+                        
+            elif tag_name == 'attribute_value':
+                if child.text:
+                    val = child.text.strip()
+                    if val.lower() in val_exact:
+                        child.text = val_exact[val.lower()]
+                    else:
+                        new_val = child.text
+                        for rus, ukr in val_replace.items():
+                            new_val = new_val.replace(rus, ukr)
+                        child.text = new_val
+                        
+            # Переклад системних кольорів у форматі GMC (<g:color>)
+            elif tag_name == 'color':
+                if child.text:
+                    val = child.text.strip()
+                    if val.lower() in val_exact:
+                        child.text = val_exact[val.lower()]
+                    else:
+                        new_val = child.text
+                        for rus, ukr in val_replace.items():
+                            new_val = new_val.replace(rus, ukr)
+                        child.text = new_val
+    # =========================================================================
 
     if fmt == "gmc":
         rss = ET.Element("rss", {
@@ -353,367 +404,4 @@ class App(tk.Tk):
 
         self._btn_small(feed_row, "Огляд…", self._pick_feed).pack(side="left")
 
-        tk.Label(self, text="або вставте URL-посилання на фід",
-                 font=FONT_SMALL, fg=TEXT_DIM, bg=BG).pack(anchor="w", padx=28)
-
-        # ── БЛОК 2: PROM API TOKEN
-        self._section("2  API-токен Пром.юа")
-
-        tok_row = tk.Frame(self, bg=BG)
-        tok_row.pack(fill="x", padx=24, pady=(0, 4))
-
-        self.tok_entry = self._entry(tok_row, self.prom_token, width=52, show="•")
-        self.tok_entry.pack(side="left", fill="x", expand=True, padx=(0, 8))
-
-        self._btn_small(tok_row, "👁", self._toggle_token).pack(side="left")
-
-        tk.Label(self,
-                 text="Пром → Налаштування → Управління API-токенами",
-                 font=FONT_SMALL, fg=TEXT_DIM, bg=BG).pack(anchor="w", padx=28)
-
-        # ── БЛОК 3: ФАЙЛ РЕЗУЛЬТАТУ
-        self._section("3  Зберегти результат як")
-
-        out_row = tk.Frame(self, bg=BG)
-        out_row.pack(fill="x", padx=24, pady=(0, 4))
-
-        self.out_entry = self._entry(out_row, self.out_path, width=52)
-        self.out_entry.pack(side="left", fill="x", expand=True, padx=(0, 8))
-
-        self._btn_small(out_row, "Огляд…", self._pick_out).pack(side="left")
-
-        self._sep()
-
-        # ── КНОПКА СТАРТ
-        self.run_btn = tk.Button(
-            self, text="▶   ЗНАЙТИ НОВІ ТОВАРИ",
-            font=FONT_BTN, bg=ACCENT, fg="#ffffff",
-            activebackground=ACCENT2, activeforeground="#ffffff",
-            bd=0, cursor="hand2", padx=28, pady=12,
-            command=self._start
-        )
-        self.run_btn.pack(fill="x", padx=24, pady=(12, 4))
-
-        # ── ПРОГРЕС-БАР
-        self.pb_frame = tk.Frame(self, bg=BG, height=6)
-        self.pb_frame.pack(fill="x", padx=24, pady=(0, 8))
-        self.pb_frame.pack_propagate(False)
-
-        self.pb_bg = tk.Frame(self.pb_frame, bg=BG3, height=6)
-        self.pb_bg.pack(fill="both", expand=True)
-
-        self.pb_fill = tk.Frame(self.pb_bg, bg=ACCENT, height=6, width=0)
-        self.pb_fill.place(x=0, y=0, height=6)
-        self._pb_anim = 0
-        self._pb_dir  = 1
-
-        # ── ЛОГ
-        log_hdr = tk.Frame(self, bg=BG)
-        log_hdr.pack(fill="x", padx=24)
-        tk.Label(log_hdr, text="Журнал", font=FONT_SMALL,
-                 fg=TEXT_DIM, bg=BG).pack(side="left")
-
-        self.log_box = tk.Text(
-            self, font=FONT_MONO, bg=BG2, fg=TEXT,
-            insertbackground=TEXT, bd=0, pady=10, padx=12,
-            relief="flat", state="disabled", height=9,
-            selectbackground=BG3
-        )
-        self.log_box.pack(fill="both", expand=True, padx=24, pady=(4, 0))
-
-        # ── СТАТИСТИКА
-        stat_frame = tk.Frame(self, bg=BG3, pady=14)
-        stat_frame.pack(fill="x", padx=24, pady=8)
-
-        self.stat_total = self._stat_cell(stat_frame, "У фіді",  "—")
-        self.stat_prom  = self._stat_cell(stat_frame, "На Проме", "—")
-        self.stat_new   = self._stat_cell(stat_frame, "НОВИХ",   "—", color=SUCCESS)
-
-        for col in range(3):
-            stat_frame.columnconfigure(col, weight=1)
-
-        # ── КНОПКА ВІДКРИТИ ПАПКУ
-        self.open_btn = tk.Button(
-            self, text="📂  Відкрити папку з результатом",
-            font=FONT_SMALL, bg=BG2, fg=TEXT_DIM,
-            activebackground=BG3, activeforeground=TEXT,
-            bd=0, cursor="hand2", padx=16, pady=8,
-            command=self._open_folder, state="disabled"
-        )
-        self.open_btn.pack(pady=(0, 16))
-
-    # ── ХЕЛПЕРИ UI ───────────────────────────
-
-    def _sep(self):
-        tk.Frame(self, bg=BORDER, height=1).pack(fill="x", padx=24, pady=8)
-
-    def _section(self, text):
-        tk.Label(self, text=text, font=("Segoe UI", 9, "bold"),
-                 fg=ACCENT, bg=BG).pack(anchor="w", padx=24, pady=(12, 4))
-
-    def _entry(self, parent, var, width=40, show=None):
-        kw = dict(
-            textvariable=var, font=FONT_LABEL, bg=BG3, fg=TEXT,
-            insertbackground=TEXT, bd=0, relief="flat",
-            highlightthickness=1, highlightbackground=BORDER,
-            highlightcolor=ACCENT, width=width
-        )
-        if show:
-            kw["show"] = show
-        e = tk.Entry(parent, **kw)
-        return e
-
-    def _btn_small(self, parent, text, cmd):
-        return tk.Button(
-            parent, text=text, font=FONT_SMALL,
-            bg=BG3, fg=TEXT_DIM,
-            activebackground=BORDER, activeforeground=TEXT,
-            bd=0, cursor="hand2", padx=10, pady=6,
-            relief="flat", command=cmd,
-            highlightthickness=1, highlightbackground=BORDER
-        )
-
-    def _stat_cell(self, parent, label, value, color=TEXT):
-        frame = tk.Frame(parent, bg=BG3)
-        frame.grid(row=0, column=len(parent.winfo_children()) - 1,
-                   sticky="nsew", padx=6)
-
-        lbl = tk.Label(frame, text=label, font=FONT_SMALL,
-                       fg=TEXT_DIM, bg=BG3)
-        lbl.pack(pady=(8, 0))
-
-        val = tk.Label(frame, text=value, font=FONT_BIG,
-                       fg=color, bg=BG3)
-        val.pack(pady=(0, 8))
-
-        # повертаємо мітку значення щоб оновлювати
-        return val
-
-    # ── ХЕЛПЕРИ ТОКЕНУ ───────────────────────
-
-    def _toggle_token(self):
-        cur = self.tok_entry.cget("show")
-        self.tok_entry.configure(show="" if cur else "•")
-
-    # ── ВИБІР ФАЙЛІВ ─────────────────────────
-
-    def _pick_feed(self):
-        path = filedialog.askopenfilename(
-            title="Виберіть XML-фід",
-            filetypes=[("XML файли", "*.xml *.yml"), ("Всі файли", "*.*")]
-        )
-        if path:
-            self.feed_path.set(path)
-            # авто-пропозиція імені результату
-            base = os.path.splitext(path)[0]
-            self.out_path.set(base + "-new.xml")
-
-    def _pick_out(self):
-        path = filedialog.asksaveasfilename(
-            title="Зберегти як",
-            defaultextension=".xml",
-            filetypes=[("XML файли", "*.xml"), ("Всі файли", "*.*")]
-        )
-        if path:
-            self.out_path.set(path)
-
-    def _open_folder(self):
-        path = self.out_path.get()
-        if path and os.path.exists(path):
-            folder = os.path.dirname(path)
-            os.startfile(folder) if sys.platform == "win32" else None
-
-    # ── ЛОГ ──────────────────────────────────
-
-    def _log(self, text, color=None):
-        self.log_box.configure(state="normal")
-        tag = None
-        if color:
-            tag = f"color_{color}"
-            self.log_box.tag_configure(tag, foreground=color)
-        self.log_box.insert("end", text + "\n", tag or "")
-        self.log_box.see("end")
-        self.log_box.configure(state="disabled")
-
-    def _log_clear(self):
-        self.log_box.configure(state="normal")
-        self.log_box.delete("1.0", "end")
-        self.log_box.configure(state="disabled")
-
-    # ── ПРОГРЕС-БАР (анімація) ───────────────
-
-    def _pb_start(self):
-        self._pb_anim = 0
-        self._pb_dir  = 1
-        self._pb_tick()
-
-    def _pb_tick(self):
-        if not self._running:
-            self.pb_fill.place(x=0, y=0, height=6, width=0)
-            return
-        w = self.pb_bg.winfo_width()
-        bar_w = max(w // 4, 60)
-        self._pb_anim += self._pb_dir * 6
-        if self._pb_anim >= w - bar_w:
-            self._pb_dir = -1
-        if self._pb_anim <= 0:
-            self._pb_dir = 1
-            self._pb_anim = 0
-        self.pb_fill.place(x=self._pb_anim, y=0, height=6, width=bar_w)
-        self.after(20, self._pb_tick)
-
-    # ── ЗБЕРЕЖЕННЯ НАЛАШТУВАНЬ ────────────────
-
-    def _settings_path(self):
-        return os.path.join(os.path.expanduser("~"), ".profetch_filter.ini")
-
-    def _save_settings(self):
-        try:
-            with open(self._settings_path(), "w", encoding="utf-8") as f:
-                f.write(f"token={self.prom_token.get()}\n")
-                f.write(f"feed={self.feed_path.get()}\n")
-                f.write(f"out={self.out_path.get()}\n")
-        except Exception:
-            pass
-
-    def _load_settings(self):
-        try:
-            p = self._settings_path()
-            if not os.path.exists(p):
-                return
-            with open(p, encoding="utf-8") as f:
-                for line in f:
-                    k, _, v = line.strip().partition("=")
-                    if k == "token":
-                        self.prom_token.set(v)
-                    elif k == "feed":
-                        self.feed_path.set(v)
-                    elif k == "out":
-                        self.out_path.set(v)
-        except Exception:
-            pass
-
-    # ── ГОЛОВНА ЛОГІКА (у потоці) ────────────
-
-    def _start(self):
-        feed  = self.feed_path.get().strip()
-        token = self.prom_token.get().strip()
-        out   = self.out_path.get().strip()
-
-        if not feed:
-            messagebox.showwarning("Увага", "Виберіть або вставте URL XML-фіду")
-            return
-        if not token:
-            messagebox.showwarning("Увага", "Введіть API-токен Пром.юа")
-            return
-        if not out:
-            messagebox.showwarning("Увага", "Вкажіть шлях для збереження результату")
-            return
-
-        self._save_settings()
-        self._log_clear()
-        self._running = True
-        self.run_btn.configure(state="disabled", text="⏳  Обробка...")
-        self.open_btn.configure(state="disabled")
-        self.stat_total.configure(text="…", fg=TEXT_DIM)
-        self.stat_prom.configure(text="…",  fg=TEXT_DIM)
-        self.stat_new.configure(text="…",   fg=TEXT_DIM)
-        self._pb_start()
-
-        threading.Thread(target=self._worker,
-                         args=(feed, token, out), daemon=True).start()
-
-    def _worker(self, feed, token, out):
-        def log(msg, color=None):
-            self.after(0, lambda: self._log(msg, color))
-
-        try:
-            # 1. Пром API
-            log("⟳  Підключення до Пром.юа API...")
-            prom_skus, prom_ext_ids = get_prom_products(token, lambda m: log(f"   {m}"))
-            log(f"✓  Пром: {len(prom_skus)} унікальних артикулів", SUCCESS)
-
-            # 2. Фід
-            log("")
-            log("⟳  Читання XML-фіду...")
-            feed_items, orig_root, fmt = parse_feed(feed, lambda m: log(f"   {m}"))
-            total = len(feed_items)
-            log(f"✓  Фід: {total} товарів (формат: {fmt.upper()})", SUCCESS)
-
-            # 3. Порівняння
-            log("")
-            log("⟳  Порівняння...")
-            new_items = []
-            for item in feed_items:
-                on_prom = (
-                    item["sku"]  in prom_skus    or
-                    item["id"]   in prom_ext_ids or
-                    item["sku"]  in prom_ext_ids
-                )
-                if not on_prom:
-                    new_items.append(item)
-
-            already = total - len(new_items)
-            log(f"✓  Порівняння завершено", SUCCESS)
-            log(f"   У фіді:    {total}")
-            log(f"   На Пром:   {already}")
-            log(f"   НОВИХ:     {len(new_items)}", SUCCESS if new_items else TEXT_DIM)
-
-            # 4. Оновлення статистики
-            self.after(0, lambda: [
-                self.stat_total.configure(text=str(total), fg=TEXT),
-                self.stat_prom.configure(text=str(already), fg=TEXT),
-                self.stat_new.configure(
-                    text=str(len(new_items)),
-                    fg=SUCCESS if new_items else TEXT_DIM
-                )
-            ])
-
-            # 5. Збереження
-            if new_items:
-                log("")
-                log("⟳  Генерація XML...")
-                xml_bytes = build_output_xml(new_items, orig_root, fmt)
-                os.makedirs(os.path.dirname(os.path.abspath(out)), exist_ok=True)
-                with open(out, "wb") as f:
-                    f.write(xml_bytes)
-                size_kb = os.path.getsize(out) / 1024
-                log(f"✓  Збережено: {os.path.basename(out)} ({size_kb:.1f} КБ)", SUCCESS)
-                log("")
-                log("─" * 42, TEXT_DIM)
-                log("ЩО РОБИТИ ДАЛІ:", ACCENT)
-                log("  1. Пром → Товари → Імпорт", TEXT)
-                log("  2. Завантажте: " + os.path.basename(out), TEXT)
-                log("  3. БЕЗ галочки «Тільки оновлення»", WARNING)
-                log("  4. Галочки: Ціна + Наявність", TEXT)
-                log("  5. Натисніть «Почати імпорт»", TEXT)
-                log("─" * 42, TEXT_DIM)
-                self.after(0, lambda: self.open_btn.configure(state="normal"))
-            else:
-                log("")
-                log("✓  Нових товарів немає — все вже на Пром!", SUCCESS)
-
-        except requests.exceptions.HTTPError as e:
-            log(f"✗  HTTP помилка: {e}", DANGER)
-            if "401" in str(e):
-                log("   Перевірте API-токен Пром", DANGER)
-        except requests.exceptions.ConnectionError:
-            log("✗  Немає з'єднання з інтернетом", DANGER)
-        except ET.ParseError as e:
-            log(f"✗  Помилка XML: {e}", DANGER)
-        except Exception as e:
-            log(f"✗  Помилка: {e}", DANGER)
-        finally:
-            self._running = False
-            self.after(0, lambda: self.run_btn.configure(
-                state="normal", text="▶   ЗНАЙТИ НОВІ ТОВАРИ"
-            ))
-
-
-# ──────────────────────────────────────────────
-#  ТОЧКА ВХОДУ
-# ──────────────────────────────────────────────
-
-if __name__ == "__main__":
-    app = App()
-    app.mainloop()
+        tk.Label(self, text
