@@ -207,6 +207,37 @@ def parse_feed(source, on_progress):
     return products
 
 
+
+def load_prom_reference(ref_path, on_progress):
+    """
+    Завантажує резервну копію Прому як словник для збагачення нових товарів.
+    Ключ: Ідентифікатор_товара (кол 26) або Код_товара (кол 1)
+    Значення: рядок з усіма полями еталону
+    """
+    if not ref_path or not os.path.exists(ref_path):
+        return {}, {}
+
+    on_progress("   Читання резервної копії Пром...")
+    wb = load_workbook(ref_path, read_only=True, data_only=True)
+    ws = wb.active
+
+    by_ext  = {}  # Ідентифікатор_товара (кол 26) → рядок
+    by_code = {}  # Код_товара (кол 1) → рядок
+
+    for r in ws.iter_rows(min_row=2, values_only=True):
+        code_ = str(r[0]).strip()  if r[0]  else ""
+        ext_  = str(r[25]).strip() if r[25] else ""
+        if ext_:
+            by_ext[ext_] = r
+        if code_:
+            by_code[code_] = r
+
+    cnt = len(by_ext)
+    on_progress(f"   Резервна копія: {cnt} записів завантажено")
+    wb.close()
+    return by_ext, by_code
+
+
 def find_new(products, prom_skus, prom_ext_ids, only_available, on_progress):
     """Повертає товари яких немає на Пром."""
     on_progress("   Порівняння з Пром...")
@@ -225,9 +256,15 @@ def find_new(products, prom_skus, prom_ext_ids, only_available, on_progress):
     return new_items, already, skipped_unavail
 
 
-def generate_xls(new_items, output_path, on_progress):
-    """Генерує XLS у форматі Пром з новими товарами + характеристики."""
+def generate_xls(new_items, output_path, on_progress, ref_by_ext=None, ref_by_code=None):
+    """Генерує XLS у форматі Пром з новими товарами + характеристики.
+    ref_by_ext / ref_by_code — словники з резервної копії Пром для збагачення даних.
+    """
     on_progress("   Збір характеристик...")
+    if ref_by_ext is None:
+        ref_by_ext = {}
+    if ref_by_code is None:
+        ref_by_code = {}
 
     # Знаходимо макс кількість характеристик серед нових товарів
     max_params = max((len(p["params"]) for p in new_items), default=0)
@@ -258,9 +295,32 @@ def generate_xls(new_items, output_path, on_progress):
     for idx, p in enumerate(new_items):
         avail = "!" if p["available"] == "true" else "-"
 
+        # Шукаємо товар в еталоні Пром по offer_id або vendorCode
+        ref = (ref_by_ext.get(p["id"]) or
+               ref_by_ext.get(p["vendor_code"]) or
+               ref_by_code.get(p["vendor_code"]))
+
+        # Код_товара: з еталону якщо є, інакше vendorCode
+        prom_code = str(ref[0]).strip() if ref and ref[0] else p["vendor_code"]
+
+        # Українські назва та опис — тільки з еталону
+        name_ua = str(ref[2]).strip() if ref and ref[2] else ""
+        desc_ua = str(ref[6]).strip() if ref and ref[6] else ""
+
+        # GTIN / MPN: спочатку з фіду, якщо немає — з еталону
+        gtin = p["gtin"] or (str(ref[42]).strip() if ref and ref[42] else "")
+        mpn  = p["mpn"]  or (str(ref[43]).strip() if ref and ref[43] else "")
+
         # Визначаємо групу: маппимо категорію фіду на групу Пром якщо треба
         raw_cat = str(p["category"]).strip()
         group_num = FEED_CATEGORY_MAP.get(raw_cat, raw_cat)
+
+        # Якщо в еталоні є точніша група (наприклад Samsung/Google замість 116950860)
+        if ref and ref[17]:
+            ref_group = str(ref[17]).strip()
+            # Беремо групу з еталону якщо вона конкретніша (не "Чехлы для мобильных")
+            if ref_group != "116950860" or group_num == "116950860":
+                group_num = ref_group
 
         # Підтягуємо назву групи, адресу підрозділу, ідентифікатор підрозділу
         grp_name, grp_addr, grp_subid = PROM_GROUP_MAP.get(group_num, ("", "", ""))
