@@ -11,10 +11,21 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - run: pip install pyinstaller requests
-      - run: pyinstaller --onefile --windowed --name PromFilter --hidden-import xml.etree.ElementTree --hidden-import xml.dom.minidom prom_filter_app.py
-      - uses: actions/upload-artifact@v4
+      - name: Install deps
+        run: pip install pyinstaller requests openpyxl
+      - name: Build PromFilter
+        run: pyinstaller --onefile --windowed --name PromFilter --hidden-import xml.etree.ElementTree --hidden-import xml.dom.minidom prom_filter_app.py
+      - name: Build PromXLSGenerator
+        run: pyinstaller --onefile --windowed --name PromXLSGenerator --hidden-import openpyxl prom_xls_new_products.py
+      - name: Upload PromFilter
+        uses: actions/upload-artifact@v4
         with:
-          name: PromFilter-Windows
+          name: PromFilter
           path: dist/PromFilter.exe
+          retention-days: 30
+      - name: Upload PromXLSGenerator
+        uses: actions/upload-artifact@v4
+        with:
+          name: PromXLSGenerator
+          path: dist/PromXLSGenerator.exe
           retention-days: 30
