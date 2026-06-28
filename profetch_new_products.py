@@ -167,18 +167,32 @@ def parse_feed(source, on_progress):
             pval  = (p.text or "").strip()
             if not pname or not pval:
                 continue
-            # GTIN / штрихкод
-            if pname in ("Штрих код", "Штрих-код", "GTIN") and pval.isdigit():
-                gtin = pval
+
+            # GTIN: чистий штрихкод / EAN з цифр (12-14 знаків)
+            if pname in ("Штрих код", "Штрих-код", "GTIN", "EAN", "UPC"):
+                digits = pval.replace(" ", "").replace("-", "")
+                if digits.isdigit() and 8 <= len(digits) <= 14:
+                    if not gtin:
+                        gtin = digits
+                else:
+                    # EAN з буквами — це насправді артикул виробника → MPN
+                    if not mpn:
+                        mpn = pval
                 continue
-            # MPN
-            if pname in ("MPN", "Номер устройства", "Артикул производителя"):
-                mpn = pval
+
+            # MPN: код виробника / артикул
+            if pname in ("MPN", "Код производителя", "Код виробника",
+                         "Артикул производителя", "Артикул виробника",
+                         "Номер устройства", "Номер пристрою"):
+                if not mpn:
+                    mpn = pval
                 continue
+
             # Габарити — в окремі колонки
             if pname in DIMENSION_PARAMS:
                 dims[DIMENSION_PARAMS[pname]] = pval
                 continue
+
             # Решта — звичайні характеристики
             params[pname] = pval
 
