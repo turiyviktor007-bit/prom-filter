@@ -361,7 +361,79 @@ class App(tk.Tk):
         if show:
             kw["show"] = show
         e = tk.Entry(parent, **kw)
+        self._enable_paste(e)
         return e
+
+    def _enable_paste(self, entry):
+        """Вставка через праву кнопку миші та Ctrl+V незалежно від розкладки."""
+        def do_paste(event=None):
+            try:
+                text = self.clipboard_get()
+                try:
+                    entry.delete("sel.first", "sel.last")
+                except tk.TclError:
+                    pass
+                entry.insert("insert", text)
+            except tk.TclError:
+                pass
+            return "break"
+
+        def do_copy(event=None):
+            try:
+                self.clipboard_clear()
+                self.clipboard_append(entry.selection_get())
+            except tk.TclError:
+                pass
+            return "break"
+
+        def do_cut(event=None):
+            do_copy()
+            try:
+                entry.delete("sel.first", "sel.last")
+            except tk.TclError:
+                pass
+            return "break"
+
+        def select_all(event=None):
+            entry.select_range(0, "end")
+            entry.icursor("end")
+            return "break"
+
+        menu = tk.Menu(entry, tearoff=0, bg=BG3, fg=TEXT,
+                       activebackground=ACCENT, activeforeground="#ffffff", bd=0)
+        menu.add_command(label="Вставити", command=do_paste)
+        menu.add_command(label="Копіювати", command=do_copy)
+        menu.add_command(label="Вирізати", command=do_cut)
+        menu.add_separator()
+        menu.add_command(label="Виділити все", command=select_all)
+
+        def show_menu(event):
+            try:
+                menu.tk_popup(event.x_root, event.y_root)
+            finally:
+                menu.grab_release()
+
+        entry.bind("<Button-3>", show_menu)
+        entry.bind("<Control-v>", do_paste)
+        entry.bind("<Control-V>", do_paste)
+        entry.bind("<Control-c>", do_copy)
+        entry.bind("<Control-C>", do_copy)
+        entry.bind("<Control-x>", do_cut)
+        entry.bind("<Control-X>", do_cut)
+        entry.bind("<Control-a>", select_all)
+        entry.bind("<Control-A>", select_all)
+
+        def keycode_handler(event):
+            if event.state & 0x4:
+                if event.keycode == 86:
+                    return do_paste()
+                if event.keycode == 67:
+                    return do_copy()
+                if event.keycode == 88:
+                    return do_cut()
+                if event.keycode == 65:
+                    return select_all()
+        entry.bind("<Key>", keycode_handler)
 
     def _btn_small(self, parent, text, cmd):
         return tk.Button(parent, text=text, font=FONT_SMALL,
