@@ -153,8 +153,9 @@ def parse_feed(source, on_progress):
         width     = ""
         height    = ""
         length    = ""
-        country   = ""
-        params    = {}  # характеристики
+        country     = ""
+        model_parts = []  # збираємо моделі телефонів
+        params      = {}  # характеристики
 
         for p in o.findall("param"):
             paramid = p.get("paramid", "").strip()
@@ -166,17 +167,18 @@ def parse_feed(source, on_progress):
                 continue
 
             if paramid == "133625":  # Совместимый бренд → група
-                # Беремо перший valueid який є в маппінгу
                 first_vid = valueid.split(",")[0].strip()
                 if first_vid in BRAND_VALUEID_MAP and group_num == DEFAULT_GROUP:
                     group_num = BRAND_VALUEID_MAP[first_vid]
+
+            elif paramid == "98900":  # Страна-производитель → колонка 30
+                country = pval
 
             elif paramid == "26294":  # EAN → GTIN
                 digits = re.sub(r"[^0-9]", "", pval)
                 if digits.isdigit() and 8 <= len(digits) <= 14:
                     gtin = digits
                 else:
-                    # Не цифровий EAN → MPN
                     if not mpn:
                         mpn = pval
 
@@ -196,14 +198,26 @@ def parse_feed(source, on_progress):
             elif paramid == "72944":  # Глубина/Длина
                 length = pval
 
-            elif paramid == "98900":  # Страна-производитель
-                country = pval
+            elif paramid == "27723":  # Особенности → через |
+                params[pname] = pval.replace(",", "|")
+
+            elif paramid in ("105323", "133649", "243303"):  # Моделі телефонів → Модель телефона
+                parts = [v.strip() for v in pval.split(",") if v.strip()]
+                model_parts.extend(parts)
 
             elif paramid not in SKIP_PARAMIDS:
-                # Звичайна характеристика — значення через | замість ,
-                # для мультизначних параметрів (Особенности, моделі тощо)
-                pval_fixed = pval.replace(",", "|")
-                params[pname] = pval_fixed
+                params[pname] = pval
+
+        # Формуємо характеристику "Модель телефона" через |
+        if model_parts:
+            # Прибираємо дублі, зберігаємо порядок
+            seen_models = set()
+            unique_models = []
+            for m in model_parts:
+                if m not in seen_models:
+                    seen_models.add(m)
+                    unique_models.append(m)
+            params["Модель телефона"] = "|".join(unique_models)
 
         products.append({
             "id": offer_id, "available": available,
