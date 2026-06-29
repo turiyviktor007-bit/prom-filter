@@ -185,9 +185,10 @@ def parse_feed(source, on_progress):
 
     products = []
     for o in offers:
-        offer_id = o.get("id", "").strip()
-        available = o.get("available", "false")
-        name     = (o.findtext("name") or "").strip()
+        offer_id     = o.get("id", "").strip()
+        available    = o.get("available", "false")
+        vendor_code  = (o.findtext("vendorCode") or "").strip()
+        name         = (o.findtext("name") or "").strip()
         name_ua  = (o.findtext("name_ua") or "").strip()
         desc     = (o.findtext("description") or "").strip()
         desc_ua  = (o.findtext("description_ua") or "").strip()
@@ -231,7 +232,7 @@ def parse_feed(source, on_progress):
             # EAN → GTIN або MPN
             if paramid == "26294":
                 digits = re.sub(r"[^0-9]", "", pval)
-                if digits.isdigit() and len(digits) in (8, 12, 13, 14):
+                if digits.isdigit() and len(digits) >= 8:
                     gtin = digits
                 else:
                     if not mpn:
@@ -294,6 +295,7 @@ def parse_feed(source, on_progress):
 
         products.append({
             "id": offer_id, "available": available,
+            "vendor_code": vendor_code,
             "name": name, "name_ua": name_ua,
             "desc": desc, "desc_ua": desc_ua,
             "price": price, "currency": currency,
@@ -328,11 +330,11 @@ def find_new(products, prom_skus, only_available, on_progress):
 def generate_xls(new_items, output_path, on_progress):
     on_progress("   Формування XLS...")
 
-    max_params = max((len(p["params"]) + len(DEFAULT_CHARS) for p in new_items), default=0)
+    max_params = 21  # Фіксовано 21 трійка як в еталоні Пром (114 колонок)
 
     headers = list(PROM_HEADERS)
     for _ in range(max_params):
-        headers += ["Назва_Характеристики", "Одиниця_Виміру_Характеристики",
+        headers += ["Назва_Характеристики", "Одиниця_виміру_Характеристики",
                     "Значення_Характеристики"]
 
     wb = Workbook()
@@ -369,16 +371,16 @@ def generate_xls(new_items, output_path, on_progress):
             "", "", "",                # 12-14
             ", ".join(p["pictures"]),  # 15 Посилання_зображення
             avail,                     # 16 Наявність
-            "555",                     # 17 Кількість
+            "",                        # 17 Кількість
             grp_num,                   # 18 Номер_групи
             grp_name,                  # 19 Назва_групи
             grp_addr,                  # 20 Посилання_підрозділу
             "", "", "", "",            # 21-24
-            p["id"],                   # 25 Унікальний_ідентифікатор
-            "",                        # 26 Ідентифікатор_товару (пусто)
+            "",                        # 25 Унікальний_ідентифікатор (Пром сам)
+            p["vendor_code"],          # 26 Ідентифікатор_товару (vendorCode)
             grp_subid,                 # 27 Ідентифікатор_підрозділу
             "",                        # 28 Ідентифікатор_групи
-            "",                        # 29 Виробник (пусто)
+            p["vendor"],               # 29 Виробник
             p["country"],              # 30 Країна_виробник
             "", "", "",                # 31-33
             p["url"],                  # 34 Продукт_на_сайті
@@ -393,16 +395,34 @@ def generate_xls(new_items, output_path, on_progress):
             p["height"],               # 47 Висота,см
             p["length"],               # 48 Довжина,см
             "Київ",                    # 49 Де_знаходиться_товар
-            "Так", "",                 # 50-51 ProSale
+            ("Так" if p["available"] == "true" else "Ні"),  # 50 ProSale
+            ("" if p["available"] == "true" else "Товару немає в наявності"),  # 51
         ]
 
         # Дефолтні характеристики (перезаписуємо)
         all_params = dict(p["params"])
         all_params.update(DEFAULT_CHARS)
 
-        # Характеристики
-        for pname, pval in all_params.items():
-            row += [pname, "", pval]
+        # Характеристики — строго в порядку еталону, тільки дозволені
+        CHAR_ORDER = [
+            "Колір",
+            "Матеріал",
+            "Форм-фактор",
+            "Особливості",
+            "Стан",
+            "Призначення",
+            "Особливість кольору",
+            "Сумісність з бездротовою зарядкою",
+            "Тип застежки",
+            "Візерунки і принти",
+            "Модель",
+            "Модель телефону",
+            "Сумісність з",
+            "Підтримка MagSafe",
+        ]
+        for char_name in CHAR_ORDER:
+            val = all_params.get(char_name, "")
+            row += [char_name if val else "", "", val if val else ""]
 
         # Заповнюємо до довжини headers
         while len(row) < len(headers):
