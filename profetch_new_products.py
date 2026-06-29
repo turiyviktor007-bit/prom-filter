@@ -92,6 +92,23 @@ COLORS_RU_UK = {
     "Green":"Зелений","Gray":"Сірий","White":"Білий",
     "Orange":"Помаранчевий","Purple":"Фіолетовий","Pink":"Рожевий",
     "Titanium":"Сірий","Olive":"Оливковий",
+    # Англійські кольори
+    "Matt Black":"Чорний","Matte Black":"Чорний","Midnight Black":"Чорний",
+    "Camo Black":"Чорний","Dark Orange":"Помаранчевий","Ash Grey":"Сірий",
+    "Olive Green":"Оливковий","Carbon Fiber":"Чорний",
+    "Black + Transparent":"Чорний","Transparent + Black":"Прозорий",
+    "Slate":"Сірий","Mallard":"Синій","Ranger Green":"Зелений",
+    "Ice":"Прозорий","Plyo":"Прозорий","Frosted Glass":"Прозорий",
+    "Crystal":"Прозорий","Space Grey":"Сірий","Space Gray":"Сірий",
+    "Starlight":"Білий","Pacific":"Синій","Sierra Blue":"Синій",
+    "Deep Purple":"Фіолетовий","Product Red":"Червоний",
+    "Desert Tan":"Бежевий","Monarch":"Чорний",
+    "Brown":"Коричневий","Dark Brown":"Коричневий","Tan":"Бежевий",
+    "Beige":"Бежевий","Cream":"Бежевий","Ivory":"Білий",
+    "Teal":"Бірюзовий","Maroon":"Бордовий","Crimson":"Червоний",
+    "Indigo":"Фіолетовий","Lavender":"Бузковий","Magenta":"Фуксія",
+    "Charcoal":"Сірий","Silver":"Срібний","Gold":"Золотий",
+    "Rose Gold":"Рожеве золото","Champagne":"Бежевий",
 }
 
 # Матеріал (paramid=644)
@@ -113,6 +130,7 @@ MATERIALS_RU_UK = {
     "Силикон + Пластик":"Силікон + пластик","Полікарбонат":"Полікарбонат",
     "Кожа + микрофибра":"Шкіра + мікрофібра","Термополиуретан":"ТПУ (термопластичний поліуретан)",
     "Клеевой слой":"Клейовий шар",
+    "Шкіра + мікрофібра":"Шкіра + мікрофібра",
 }
 
 # Форм-фактор (paramid=7042)
@@ -267,6 +285,11 @@ def translate(value, dictionary):
         base = value.split(":")[0].strip()
         if base in dictionary:
             return dictionary[base]
+    # Для комбінованих через " + " — беремо перший компонент
+    if " + " in value or " + " in value:
+        first = value.split("+")[0].strip()
+        if first in dictionary:
+            return dictionary[first]
     # Якщо не знайдено — лишаємо як є
     return value
 
