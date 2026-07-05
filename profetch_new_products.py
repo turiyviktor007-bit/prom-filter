@@ -4519,17 +4519,54 @@ def tr1(val, d):
     if not val: return ""
     return d.get(val,"")
 
+# Таблиця найближчих кольорів (англ → укр з бази Прому)
+_COLOR_NEAREST = {
+    "black":"Чорний","white":"Білий","red":"Червоний","blue":"Синій",
+    "green":"Зелений","gray":"Сірий","grey":"Сірий","silver":"Срібний",
+    "gold":"Золотий","pink":"Рожевий","purple":"Фіолетовий","orange":"Помаранчевий",
+    "yellow":"Жовтий","brown":"Коричневий","beige":"Бежевий","navy":"Темно-синій",
+    "teal":"Бірюзовий","olive":"Оливковий","coral":"Кораловий","mint":"М'ятний",
+    "cream":"Бежевий","ivory":"Білий","tan":"Бежевий","khaki":"Хакі",
+    "maroon":"Бордовий","violet":"Фіолетовий","indigo":"Фіолетовий",
+    "transparent":"Прозорий","clear":"Прозорий","rose":"Рожевий",
+    "lavender":"Бузковий","magenta":"Фуксія","charcoal":"Сірий",
+    "midnight":"Чорний","slate":"Сірий","carbon":"Чорний","dark":"Чорний",
+    "light":"Білий","matte":"Чорний","matt":"Чорний","camo":"Чорний",
+    "desert":"Бежевий","army":"Оливковий","forest":"Зелений","sky":"Блакитний",
+    "ocean":"Синій","sand":"Пісочний","stone":"Сірий","smoke":"Сірий",
+    "frost":"Прозорий","ice":"Прозорий","crystal":"Прозорий","pearl":"Білий",
+    "bone":"Бежевий","ash":"Сірий","dusk":"Фіолетовий","sage":"Зелений",
+    "mallard":"Синій","ranger":"Зелений","monarch":"Чорний","pathfinder":"Чорний",
+    "plyo":"Прозорий","scout":"Чорний","civilian":"Чорний",
+}
+
+def _nearest_color(val):
+    """Шукає найближчий колір за ключовими словами."""
+    low = val.lower()
+    # Перевіряємо кожне слово
+    for word in re.split(r'[\s\+\-\_:/]+', low):
+        if word in _COLOR_NEAREST:
+            uk = _COLOR_NEAREST[word]
+            # Перевіряємо що це значення є в базі Прому
+            if uk in set(_COLOR.values()):
+                return uk
+    return ""
+
 def tr_color(val):
     if not val: return ""
+    # Пряме співпадіння в базі Прому
     r = _COLOR.get(val,"")
     if r: return r
+    # Значення типу "Прозрачный: Pink" → перша частина
     if ":" in val:
         r = _COLOR.get(val.split(":")[0].strip(),"")
         if r: return r
+    # Комбіновані через "+" → перша частина
     if "+" in val:
         r = _COLOR.get(re.split(r'\s*\+\s*',val)[0].strip(),"")
         if r: return r
-    return ""
+    # Пошук найближчого за ключовими словами
+    return _nearest_color(val)
 
 def tr_mat(val):
     if not val: return ""
@@ -4592,6 +4629,7 @@ DEFAULTS={
     "Підтримка MagSafe":                 "Так",
     "Стан":                              "Новий",
     "Призначення":                       "Для телефону",
+    "Тип застежки":                      "Без застібки",
 }
 
 GROUP_MAP={
@@ -4783,7 +4821,7 @@ def generate_xls(items, path, on_progress):
         row=[
             p["id"],p["name"],p["name_ua"],"","",
             p["desc"],p["desc_ua"],"r",p["price"],p["currency"],"шт.",
-            "","","",", ".join(p["pics"]),avail,"",
+            "","","",", ".join(p["pics"]),avail,"100",
             gn,gname,gaddr,"","","","",
             "",p["vendor_code"],gsub,"",p["vendor"],country,
             "","","",p["url"],"","","-","","","","","",
