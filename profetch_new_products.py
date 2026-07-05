@@ -4630,6 +4630,7 @@ DEFAULTS={
     "Стан":                              "Новий",
     "Призначення":                       "Для телефону",
     "Тип застежки":                      "Без застібки",
+    "Особливості":                       "Протиударний|Рифлена текстура|Покриття soft touch|MagSafe|Магнітний|Посилені борти чохла|Для занять спортом|Захист камери",
 }
 
 GROUP_MAP={
@@ -4735,11 +4736,7 @@ def parse_feed(source, on_progress):
                 if v: chars["Форм-фактор"]=v
                 continue
             if pid in ("11867","27723"):
-                f=tr_feat(pv)
-                if f:
-                    ex=chars.get("Особливості","")
-                    chars["Особливості"]=(ex+"|"+f).strip("|") if ex else f
-                continue
+                continue  # Особливості — фіксований список з DEFAULTS
             if pid=="10006":
                 v=tr1(pv,_STATE)
                 if v: chars["Стан"]=v
