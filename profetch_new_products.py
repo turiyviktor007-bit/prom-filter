@@ -9,8 +9,6 @@ import requests, base64
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment
 
-# ── ВБУДОВАНИЙ XML ───────────────────────────
-PROM_XML_B64 = (
 (
     "PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz4KPGNhdGVnb3JpZXM+CiAgPGNhdGVn"
     "b3J5IGlkPSIzODAyMzAiIG5hbWVSVT0i0KfQtdGF0LvRiyDQtNC70Y8g0YLQtdC70LXRhNC+0L3QvtCy"
@@ -4467,9 +4465,7 @@ PROM_XML_B64 = (
     "VT0iINCf0L7QtNC00LXRgNC20LrQsCBNYWdTYWZlIiB0eXBlPSJib29sIiBuYW1lVUs9ItCf0ZbQtNGC"
     "0YDQuNC80LrQsCBNYWdTYWZlIi8+CiAgPC9jYXRlZ29yeT4KPC9jYXRlZ29yaWVzPgo="
 )
-)
 
-# ── ЗАВАНТАЖЕННЯ ДОВІДНИКА ────────────────────
 def _load_prom():
     root = ET.fromstring(base64.b64decode(PROM_XML_B64))
     d = {}
@@ -4483,19 +4479,18 @@ def _load_prom():
     return d
 
 _PROM = _load_prom()
-_COLOR   = _PROM.get("4846",{}).get("vals",{})
-_MAT     = _PROM.get("644",{}).get("vals",{})
-_FF      = _PROM.get("7042",{}).get("vals",{})
-_FEAT    = _PROM.get("11867",{}).get("vals",{})
-_STATE   = _PROM.get("10006",{}).get("vals",{})
-_PURP    = _PROM.get("5527",{}).get("vals",{})
-_CFEAT   = _PROM.get("11301",{}).get("vals",{})
-_CLASP   = _PROM.get("11901",{}).get("vals",{})
-_PRINTS  = _PROM.get("2719",{}).get("vals",{})
-_COMPAT  = _PROM.get("16752",{}).get("vals",{})
-_MODELS  = _PROM.get("19043",{}).get("vals",{})
+_COLOR  = _PROM.get("4846",{}).get("vals",{})
+_MAT    = _PROM.get("644",{}).get("vals",{})
+_FF     = _PROM.get("7042",{}).get("vals",{})
+_FEAT   = _PROM.get("11867",{}).get("vals",{})
+_STATE  = _PROM.get("10006",{}).get("vals",{})
+_PURP   = _PROM.get("5527",{}).get("vals",{})
+_CFEAT  = _PROM.get("11301",{}).get("vals",{})
+_CLASP  = _PROM.get("11901",{}).get("vals",{})
+_PRINTS = _PROM.get("2719",{}).get("vals",{})
+_COMPAT = _PROM.get("16752",{}).get("vals",{})
+_MODELS = _PROM.get("19043",{}).get("vals",{})
 
-# Нормалізований індекс моделей
 def _norm(s): return re.sub(r'[^a-z0-9]','',s.lower())
 _MIDX = {}
 for _m in _MODELS:
@@ -4519,7 +4514,6 @@ def tr1(val, d):
     if not val: return ""
     return d.get(val,"")
 
-# Таблиця найближчих кольорів (англ → укр з бази Прому)
 _COLOR_NEAREST = {
     "black":"Чорний","white":"Білий","red":"Червоний","blue":"Синій",
     "green":"Зелений","gray":"Сірий","grey":"Сірий","silver":"Срібний",
@@ -4535,37 +4529,29 @@ _COLOR_NEAREST = {
     "desert":"Бежевий","army":"Оливковий","forest":"Зелений","sky":"Блакитний",
     "ocean":"Синій","sand":"Пісочний","stone":"Сірий","smoke":"Сірий",
     "frost":"Прозорий","ice":"Прозорий","crystal":"Прозорий","pearl":"Білий",
-    "bone":"Бежевий","ash":"Сірий","dusk":"Фіолетовий","sage":"Зелений",
-    "mallard":"Синій","ranger":"Зелений","monarch":"Чорний","pathfinder":"Чорний",
-    "plyo":"Прозорий","scout":"Чорний","civilian":"Чорний",
+    "bone":"Бежевий","ash":"Сірий","sage":"Зелений","mallard":"Синій",
+    "ranger":"Зелений","monarch":"Чорний","plyo":"Прозорий","scout":"Чорний",
 }
 
 def _nearest_color(val):
-    """Шукає найближчий колір за ключовими словами."""
     low = val.lower()
-    # Перевіряємо кожне слово
+    color_vals = set(_COLOR.values())
     for word in re.split(r'[\s\+\-\_:/]+', low):
         if word in _COLOR_NEAREST:
             uk = _COLOR_NEAREST[word]
-            # Перевіряємо що це значення є в базі Прому
-            if uk in set(_COLOR.values()):
-                return uk
+            if uk in color_vals: return uk
     return ""
 
 def tr_color(val):
     if not val: return ""
-    # Пряме співпадіння в базі Прому
     r = _COLOR.get(val,"")
     if r: return r
-    # Значення типу "Прозрачный: Pink" → перша частина
     if ":" in val:
         r = _COLOR.get(val.split(":")[0].strip(),"")
         if r: return r
-    # Комбіновані через "+" → перша частина
     if "+" in val:
         r = _COLOR.get(re.split(r'\s*\+\s*',val)[0].strip(),"")
         if r: return r
-    # Пошук найближчого за ключовими словами
     return _nearest_color(val)
 
 def tr_mat(val):
@@ -4577,14 +4563,6 @@ def tr_mat(val):
         if r: return r
     return ""
 
-def tr_feat(val):
-    if not val: return ""
-    sep = "|" if "|" in val else ","
-    parts = [v.strip() for v in val.split(sep) if v.strip()]
-    res = [_FEAT[p] for p in parts if p in _FEAT]
-    return "|".join(res)
-
-# ── КОНСТАНТИ ─────────────────────────────────
 BG,BG2,BG3="#0f1117","#1a1d27","#22263a"
 ACCENT,SUCCESS,WARNING,DANGER="#4f8ef7","#3ecf8e","#f7b731","#fc5c65"
 TEXT,TEXT_DIM,BORDER="#e8eaf6","#6b7280","#2d3250"
@@ -4646,15 +4624,13 @@ GROUP_MAP={
 DEFAULT_GROUP="116950860"
 BRAND_VID={"1053041":"125025453","1053225":"125025490","1303680":"125025593"}
 
-# ── ЛОГІКА ────────────────────────────────────
 def get_prom_skus(token, on_progress):
     hdrs={"Authorization":f"Bearer {token}","Content-Type":"application/json"}
     skus=set(); limit,last_id,page=100,None,1
     while True:
         params={"limit":limit,"status":"on_display,draft,deleted"}
         if last_id: params["last_id"]=last_id
-        r=requests.get("https://my.prom.ua/api/v1/products/list",
-                       headers=hdrs,params=params,timeout=30)
+        r=requests.get("https://my.prom.ua/api/v1/products/list",headers=hdrs,params=params,timeout=30)
         r.raise_for_status()
         prods=r.json().get("products",[])
         if not prods: break
@@ -4665,7 +4641,6 @@ def get_prom_skus(token, on_progress):
         if len(prods)<limit: break
         last_id=prods[-1]["id"]; page+=1; time.sleep(0.4)
     return skus
-
 
 def parse_feed(source, on_progress):
     on_progress("   Читання фіду...")
@@ -4763,14 +4738,12 @@ def parse_feed(source, on_progress):
             if pid=="19247":
                 chars["Підтримка MagSafe"]="Так" if pv.lower() in ("да","так","yes","true") else "Ні"
                 continue
-        # Модель телефону
         if model_parts:
             seen=set(); res=[]
             for m in model_parts:
                 pm=find_model(m)
                 if pm and pm not in seen: seen.add(pm); res.append(pm)
             if res: chars["Модель телефону"]="|".join(res)
-        # Сумісність з
         if brand_c and brand_c in _COMPAT:
             chars["Сумісність з"]=_COMPAT[brand_c]
         products.append({
@@ -4784,7 +4757,6 @@ def parse_feed(source, on_progress):
     on_progress(f"   Розпарсено: {len(products)} товарів")
     return products
 
-
 def find_new(products, prom_skus, only_avail, on_progress):
     on_progress("   Порівняння...")
     new,already,skipped=[],0,0
@@ -4793,7 +4765,6 @@ def find_new(products, prom_skus, only_avail, on_progress):
         if p["id"] in prom_skus: already+=1
         else: new.append(p)
     return new,already,skipped
-
 
 def generate_xls(items, path, on_progress):
     on_progress("   Формування XLS...")
@@ -4841,7 +4812,6 @@ def generate_xls(items, path, on_progress):
     ws.freeze_panes="A2"; wb.save(path)
     on_progress(f"   Збережено: {os.path.basename(path)} ({os.path.getsize(path)//1024} КБ)")
 
-# ── GUI ───────────────────────────────────────
 class App(tk.Tk):
     def __init__(self):
         super().__init__()
@@ -5069,8 +5039,7 @@ class App(tk.Tk):
             log(f"✗  Помилка XML: {e}",DANGER)
         except Exception as e:
             import traceback
-            log(f"✗  Помилка: {e}",DANGER)
-            log(traceback.format_exc(),DANGER)
+            log(f"✗  Помилка: {e}",DANGER); log(traceback.format_exc(),DANGER)
         finally:
             self._running=False
             self.after(0,lambda:self.run_btn.configure(state="normal",text="▶   ЗНАЙТИ НОВІ ТОВАРИ → XLS"))
