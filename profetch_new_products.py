@@ -9,7 +9,7 @@ import requests, base64
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment
 
-(
+PROM_XML_B64 = (
     "PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz4KPGNhdGVnb3JpZXM+CiAgPGNhdGVn"
     "b3J5IGlkPSIzODAyMzAiIG5hbWVSVT0i0KfQtdGF0LvRiyDQtNC70Y8g0YLQtdC70LXRhNC+0L3QvtCy"
     "IiBuYW1lVUs9ItCn0L7RhdC70Lgg0LTQu9GPINGC0LXQu9C10YTQvtC90ZbQsiI+CiAgICA8YXR0cmli"
@@ -4482,7 +4482,6 @@ _PROM = _load_prom()
 _COLOR  = _PROM.get("4846",{}).get("vals",{})
 _MAT    = _PROM.get("644",{}).get("vals",{})
 _FF     = _PROM.get("7042",{}).get("vals",{})
-_FEAT   = _PROM.get("11867",{}).get("vals",{})
 _STATE  = _PROM.get("10006",{}).get("vals",{})
 _PURP   = _PROM.get("5527",{}).get("vals",{})
 _CFEAT  = _PROM.get("11301",{}).get("vals",{})
@@ -4711,7 +4710,7 @@ def parse_feed(source, on_progress):
                 if v: chars["Форм-фактор"]=v
                 continue
             if pid in ("11867","27723"):
-                continue  # Особливості — фіксований список з DEFAULTS
+                continue
             if pid=="10006":
                 v=tr1(pv,_STATE)
                 if v: chars["Стан"]=v
